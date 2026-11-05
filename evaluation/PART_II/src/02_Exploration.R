@@ -68,7 +68,6 @@ plot(data$num_trees, biomass,
      ylab = "Biomass (t/ha)",
      main = "Number of trees and biomass (t/ha)")
 nb_tree_to_biom <- lm(biomass ~ data$num_trees, data = dat)
-summary(nb_tree_to_biom)
 num_trees_r_squared <- summary(nb_tree_to_biom)$r.squared
 
 plot(data$mean_dbh, biomass, 
@@ -313,9 +312,6 @@ oneParamRsquaredDf <- data.frame(oneParamRsquaredVariables, oneParamRsquaredList
 head(oneParamRsquaredDf)
 summary(oneParamRsquaredDf)
 oneParamRsquaredDfOrdered <- oneParamRsquaredDf[order(oneParamRsquaredDf$oneParamRsquaredList, decreasing = TRUE),]
-head(oneParamRsquaredDfOrdered)
-
-aes(x = oneParamRsquaredDfOrdered$oneParamRsquaredVariables, y = oneParamRsquaredDfOrdered$oneParamRsquaredList)
-ggplot(data = oneParamRsquaredDfOrdered, 
-       mapping = aes(x = oneParamRsquaredVariables)) +
-  geom_bar(aes (x = (x = oneParamRsquaredVariables), fill = "green"))
+head(oneParamRsquaredDfOrdered, 30)
+saveRDS(oneParamRsquaredDfOrdered, file = "./data/lopez/processed/individual_r_squared_to_biom.rds")
+################################################################################
