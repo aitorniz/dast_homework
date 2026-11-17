@@ -13,7 +13,7 @@ library(ggeffects)
 library(ggplot2)
 
 #load data
-dat <- readRDS("./data/lopez/processed/dat.rds")
+data <- readRDS("./data/lopez/processed/dat.rds")
 
 ################################################################################
 ######################### Perform exploratory analysis #########################

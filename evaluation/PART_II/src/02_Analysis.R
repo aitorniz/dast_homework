@@ -70,13 +70,14 @@ col <- colorRampPalette(c("#b2182b", "white", "#3a86d4"))(20)
 
 hm_nfi_survey <- as.matrix(NFI_SURVEY_cor[, -1])
 rownames(hm_nfi_survey) <- NFI_SURVEY_cor$rowname
-hm_raw <- ggplot()
-hm_raw + heatmap(hm_nfi_survey,
+hm_raw <- heatmap(hm_nfi_survey,
                   scale = 'none',
                   col = col,
                   RowSideColors = rep(c("blue", "pink"), each = 16),
                   ColSideColors = rep(c("purple", "orange"), each = 16)
-                  )
+                  ) +
+  guides(fill = guide_legend(title = "Correlation intensity"))
+  
 
 ggsave("./output/hm_raw.png", plot = hm_raw)
 
@@ -119,25 +120,44 @@ T_anomaly_plot + geom_boxplot() +
        x = "Season/Type", 
        y = "T°C")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-ggsave("./output/anomalies_C_season.png", plot = T_anomaly_plot )
+ggsave("./output/anomalies_C_season.png", plot = T_anomaly_plot)
 
 NFI_SURVEY <- na.omit(NFI_SURVEY)
+
+#-------------------------------------------------------------------------------#
 
 mT_basic <- lm(biom ~ tmoy_win_mean_anomaly + tmoy_win_min_anomaly + tmoy_win_max_anomaly, data = NFI_SURVEY, na.action = na.omit)
 ss_basic <- simulateResiduals(mT_basic)
 pp_basic_min <- predict_response(mT_basic, terms = "tmoy_win_min_anomaly")
 pp_basic_mean <- predict_response(mT_basic, terms = "tmoy_win_mean_anomaly")
 pp_basic_max <- predict_response(mT_basic, terms = "tmoy_win_max_anomaly")
-plot(pp_basic_min, show_data = TRUE)
-plot(pp_basic_mean, show_data = TRUE)
-plot(pp_basic_max, show_data = TRUE)
+
+plot_T_min <- ggplot(data = pp_basic_min, aes(x=pp_basic_min$x, y=pp_basic_min$predicted)) +
+  geom_density(data = pp_basic_min, aes(x = pp_basic_min$x, 
+                                        y= pp_basic_min$predicted),
+               fill = "yellow") +
+  labs(title = "Biomass and T minimum anomaly")
+plot_T_mean <- ggplot(data = pp_basic_mean) +
+  geom_density(fill = "orange") +
+  labs(title = "Biomass and T mean anomaly")
+plot_T_max <- ggplot(data = pp_basic_max) +
+  geom_density(fill = "red") +
+  labs(title = "Biomass and T maximum anomaly")
+
+
+combined_plot <- plot_T_min + plot_T_mean + plot_T_max
 plot(biom ~ tmoy_win_mean_anomaly + tmoy_win_min_anomaly + tmoy_win_max_anomaly, data = NFI_SURVEY, na.action = na.omit)
+
+
 mT_basic_AIC <- stepAIC(mT_basic)
 #                       Df Sum of Sq        RSS    AIC
 #<none>                               5.6771e+10 103984
 #- tmoy_win_max_anomaly   1  36472253 5.6808e+10 103986
 #- tmoy_win_mean_anomaly  1  99999177 5.6871e+10 103993
-#
+
+
+#------------------------------------------------------------------------------#
+
 mT_rd <- lm(biom ~ ., data = NFI_SURVEY)
 mT_rd_best <- stepAIC(mT_rd)
 #Df  Sum of Sq        RSS    AIC
@@ -165,6 +185,12 @@ ggplot(reg_basic_df, aes(x = Predicted_value, y = Observed_value))+
   geom_point() +
   xlab("Predictions from Temperature based random model") +
   ylab("Observations")
+
+
+
+#------------------------------------------------------------------------------#
+################################ Non-hierarchical model ########################
+#------------------------------------------------------------------------------#
 
 mT_non_hiera <- lm(biom ~ ser_86 + tmoy_win_mean_anomaly + tmoy_win_min_anomaly + tmoy_win_max_anomaly, data = NFI_SURVEY_RAW, na.action = na.omit)
 summary(mT_non_hiera)
@@ -232,6 +258,10 @@ ggplot(prop_df, aes(x = pro_psg,
 
 ggsave("./output/biom_prop.png")
 
+
+#------------------------------------------------------------------------------#
+################################ Hierarchical model ############################
+#------------------------------------------------------------------------------#
 m_hiera_nl <- glmer(biom ~ scale(tmoy_win_mean_anomaly) + 
                             scale(tmoy_win_min_anomaly) + 
                             scale(tmoy_win_max_anomaly) +
@@ -247,8 +277,11 @@ m_hiera_nl <- glmer(biom ~ scale(tmoy_win_mean_anomaly) +
                             (1|dep) +
                             (1| mgmt_intensity) +
                             (1 | pro_psg), data = NFI_SURVEY_RAW, na.action = na.omit)
+ss_nl <- res
 pp_hiera_nl_pH <- predict_response(m_hiera_nl, terms = "soil_pH")
-plot(pp_hiera_nl_pH)
+pp_pH <- ggplot(data = pp_hiera_nl_pH) +
+  geom_line(aes(x = pp_hiera_nl_pH$x, y = pp_hiera_nl_pH$predicted))
+print(pp_pH)
 pp_hiera_nl_win_mean <- predict_response(m_hiera_nl, terms = "tmoy_win_mean_anomaly")
 plot(pp_hiera_nl_win_mean)
 pp_hiera_nl_swhc <- predict_response(m_hiera_nl, terms = "soil_swhc")
